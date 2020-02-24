@@ -8,7 +8,12 @@ class UserController {
 
     }
 
-
+//DATE
+//new Date() //Data atual
+//new Date(2018, 4, 5) //Retorna o mês de maio, pois o mes em javascript é contado a partir do 0
+// new Date([2018, 4, 5]) //Passando o array, ele me retorna os valores igual a data normal
+//new Date("2018-04-05") // Se eu passar desta forma sem especificar as horas, ele vai me retornar 00:00:00 - 3 horas pois a gente tá treês horas do horario GMT
+//new Date("2018-01-01 00:00:00") //Aqui ele vai retornar a data e os milisegundos da forma em que eu passei
     onSubmit(){
     
 
@@ -16,8 +21,9 @@ class UserController {
 
                 event.preventDefault();
 
-                let values = this.getValues();
-                
+                let btn = this.formEl.querySelector("[type=submit]");
+                btn.disabled = true;
+                let values = this.getValues();              
 
                 /*
                     Resumo
@@ -28,6 +34,9 @@ class UserController {
                     values.photo = content;
 
                     this.addLine(values);
+                    this.formEl.reset();
+
+                    btn.disabled = false;
 
                 }, (e) => {
                 
@@ -132,8 +141,7 @@ class UserController {
             user.admin
         );
 
-        
-
+      
     }
 
     addLine (dataUser) {
@@ -144,7 +152,7 @@ class UserController {
       <td>${dataUser.name}</td>
       <td>${dataUser.email}</td>
       <td>${(dataUser.admin) ? 'sim' : 'não'}</td>
-      <td>${dataUser.birth}</td>
+      <td>${Utils.dateFormat(dataUser.register)}</td>
       <td>
           <button type="button" class="btn btn-primary btn-xs btn-flat">Editar</button>
           <button type="button" class="btn btn-danger btn-xs btn-flat">Excluir</button>
