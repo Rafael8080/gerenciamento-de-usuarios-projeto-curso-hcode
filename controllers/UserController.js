@@ -14,55 +14,81 @@ class UserController {
 
       this.formEl.addEventListener("submit", (event) => {
 
-            event.preventDefault();
+                event.preventDefault();
 
-            let values = this.getValues();
+                let values = this.getValues();
+                
 
-            values.photo = "";
+                /*
+                    Resumo
+                    O método then() retorna uma Promise. Possui dois argumentos, ambos são "call back functions", sendo uma para o sucesso e outra para o fracasso da promessa.
+                */
+                this.getPhoto().then( (content) => {
+
+                    values.photo = content;
+
+                    this.addLine(values);
+
+                }, (e) => {
+                
+                    console.error(e);
+
+            }
+
             
-            this.getPhoto( content => {
+         );
 
-                values.photo = content;
+        
+    });
 
-                this.addLine(values);
+}
+
+
+    getPhoto(){
+
+        return new Promise( (resolve, reject) => {
+
+                        //Filtrando o campo foto
+            let elements = [...this.formEl.elements].filter(item => {
+
+                if (item.name === 'photo') {
+                    return item;
+                }
 
             });
 
+            let fileReader = new FileReader();
+
         
-        });
+            let file = elements[0].files[0];
 
-    }
+            fileReader.onload = () => {
 
+                resolve(fileReader.result);
 
-    getPhoto(callback){
+            };
 
-       //Filtrando o campo foto
-       let elements = [...this.formEl.elements].filter(item => {
+            fileReader.onerror = (e) => {
 
-            if (item.name === 'photo') {
-                return item;
+                reject(e);
+
             }
 
-        });
 
-        let fileReader = new FileReader();
+          if(file) {
 
-        //Aqui, elements é um array com um inten, um array com todos itens que atendem
-        //a condição da variavel elements. o elements[0] seria o item desse campo o usuario selecionou o campo file, selecionou um arquivo , 
-        //e eu tô pegando o arquivo que o usuario selecionou, que nesse caso é uma foto
-        //Ou seja, o elements e o file é uma coleção, e eu preciso selecionar os campos que me interessa
-        let file = elements[0].files[0];
+              fileReader.readAsDataURL(file);
 
-        //CallBack é uma função usada como retorno após a execução de uma rotina. nesse caso, será recarregar a photo
-        //Ou seja, quando o o onload terminar de ler a foto, vai chamar a função de callback passando o resultado do caminho do arquivo
-        fileReader.onload = () => {
+          }
+           else{
 
-            //Essa função de callback, ler o conteúdo dá do campo fil, ela pega o caminho do arquivo que o usuario pegou
-            callback(fileReader.result);
+            resolve('dist/img/boxed-bg.jpg');
 
-        };
-        //O aqrquivo que vai ser lido
-        fileReader.readAsDataURL(file);
+          }
+
+    });
+            
+        
 
     }
 
@@ -81,7 +107,13 @@ class UserController {
                     user[field.name] = field.value;             
                 }
         
-            } else {
+            } 
+            else if(field.name == "admin") {
+
+                user[field.name] = field.checked;
+
+            }
+            else {
                 
                 user[field.name] = field.value;
         
@@ -105,23 +137,20 @@ class UserController {
     }
 
     addLine (dataUser) {
-        console.log(dataUser)
-           //Template String
-   //Aqui estou acesando os dados do objeto datauser
-  this.tableEl.innerHTML = `
-  <tr>
+        
+  let tr = document.createElement('tr');
+ tr.innerHTML = `
       <td><img src="${dataUser.photo}" alt="User Image" class="img-circle img-sm"></td>
       <td>${dataUser.name}</td>
       <td>${dataUser.email}</td>
-      <td>${dataUser.admin}</td>
+      <td>${(dataUser.admin) ? 'sim' : 'não'}</td>
       <td>${dataUser.birth}</td>
       <td>
           <button type="button" class="btn btn-primary btn-xs btn-flat">Editar</button>
           <button type="button" class="btn btn-danger btn-xs btn-flat">Excluir</button>
       </td>
-  </tr>
  `;
-
+this.tableEl.appendChild(tr);
     }
 
 }//Fecha classe
