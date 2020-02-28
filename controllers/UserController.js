@@ -8,6 +8,20 @@ class UserController {
         this.tableEl = document.getElementById(tableId);
         //Chamando o meu metodo onSubmit
         this.onSubmit();
+        //Cancela a edição do formulario
+        this.onEdit();
+
+    }
+
+    //Esse trecho de código, cancela a edição do formulario
+    onEdit(){
+
+        document.querySelector("#box-user-update .btn-cancel").addEventListener("click", ()=>{
+
+            //Mostra o formulario de cadastro na tela
+            this.showPanelCreate();
+
+        });
 
     }
 
@@ -195,8 +209,8 @@ class UserController {
   //Convertendo um Json para String
   //Aqui estou adicionando um dataset a minha tag html tr, ela é está guardando as informações que foram enviadas até o momento e como o dataset não suporta o tipo object apenas Strings...
  //Estou serializando os meu dados , ou seja estou convertendo o meu Json em String, pois precisarei dessa informação mais na frente
+ //Aqui estou convertendo pra json
  tr.dataset.user = JSON.stringify(dataUser);
-
 //Aqui Estou adicionando as minhas tables data (td) a table row (tr)
  tr.innerHTML = `
       <td><img src="${dataUser.photo}" alt="User Image" class="img-circle img-sm"></td>
@@ -205,16 +219,88 @@ class UserController {
       <td>${(dataUser.admin) ? 'sim' : 'não'}</td>
       <td>${Utils.dateFormat(dataUser.register)}</td>
       <td>
-          <button type="button" class="btn btn-primary btn-xs btn-flat">Editar</button>
+          <button type="button" class="btn btn-edit btn-primary btn-xs btn-flat">Editar</button>
           <button type="button" class="btn btn-danger btn-xs btn-flat">Excluir</button>
       </td>
  `;
+ //Pegando a table row que foi adicionada na tabela, adcionando um evento de click...
+ //Essa ação, diz que quando a tr receber um click ele vai trocar o formulario de criação e colocar o formulario de edição de dados
+ tr.querySelector(".btn-edit").addEventListener("click", e=>{
+              //Aqui estou convertendo para um objeto javascript
+   let json = JSON.parse(tr.dataset.user);
+   console.log(json);
+   let form =  document.querySelector("#form-user-update");
+
+   //Aqui temos um for in, que tá percorrendo o meu objeto json...
+  //O for significa para cada, e a variavel name significa o elemento em questão, por que não se esqueçã de que o for in...
+  //É um loop ele tá percorrendo a variavel json que tem um objeto com os dados do meu usuario
+   for(let name in json){
+    console.log("nome", name);
+       //O json é um objeto comum, assim está pegando apenas os atributos que forma passados.
+       //Aqui estou procurando os campos, e estou tirando o underline padrão no formulario "#form-user-update"
+       let field = form.querySelector("[name="+name.replace("_", "")+"]");
+       
+       //Verifico se o campo existe no formulario
+       if(field) {
+                    //Se o tipo do campo for:
+            switch(field.type){
+
+                //Se o input for do tipo radio, apenas continue, pois não é possivel file.type ser tratado com value
+                case 'file':
+                continue;
+                break;
+
+                //Caso seja radio
+                case 'radio':
+                    //Aqui, ele tá pegando o valor que está sendo alimentado ou por M ou por f no caso o atributo value
+                    field = form.querySelector("[name="+name.replace("_", "")+"][value="+json[name]+"]");
+                    field.checked = true;
+                break;
+
+                //Se está checkado é true, se não está checkado, é false
+                case 'checkbox':
+                    //Pegando a propriedade do meu do meu json, nunca se esqueça que os indices do json , são as propriedades do meu...
+                    //Objeto, diferente do array, que os indices começam com[0, 1, 2...e assim por diante]
+                    field.checked = json[name];
+                break;
+
+                    //Se for de qualquer outro tipo o campo, excute o default
+                default:
+                    field.value = json[name];
+
+            }
+
+            field.value = json[name];
+        }
+        //O relplace serve pra tirar o underline do campo, pra fazer comparação com a instancia da classe, a intancia da classe está sendo chamada pelo o getter...
+
+   }
+
+    this.showPanelUpdate();
+
+
+ });
+
  //Aqui estou acrescentando um usuario a minha tabela , se eu usasse o innerHTML, ele iria substituir as informações
 this.tableEl.appendChild(tr);
 
         //Aqui estou fazendo a contagem de todos usuarios, e fazendo a contagem de quantos adiministradores tem
         this.updateCount();
 
+
+    }
+    //Mostra o formulario de criação de dados
+    showPanelCreate(){
+
+        document.querySelector("#box-user-create").style.display = "block";
+        document.querySelector("#box-user-update").style.display = "none";
+
+    }
+    //Mostra o formulario de atualização de dados
+    showPanelUpdate(){
+
+        document.querySelector("#box-user-create").style.display = "none";
+        document.querySelector("#box-user-update").style.display = "block";
 
     }
 
