@@ -1,13 +1,16 @@
 class UserController {
 
-    constructor (formId, tableId) {
+    constructor (formIdCreate, formIdUpdate, tableId) {
 
         //Inicializando o meu construtor Selecionando o formulario
-        this.formEl = document.getElementById(formId);
+        this.formEl = document.getElementById(formIdCreate);
         //Inicializando o meu construtor selecionando a minha tabela
         this.tableEl = document.getElementById(tableId);
         //Chamando o meu metodo onSubmit
         this.onSubmit();
+
+        this.formUpdateEl = document.getElementById(formIdUpdate);
+
         //Cancela a edição do formulario
         this.onEdit();
 
@@ -20,6 +23,75 @@ class UserController {
 
             //Mostra o formulario de cadastro na tela
             this.showPanelCreate();
+
+        });
+        
+
+        this.formUpdateEl.addEventListener("submit", event => {
+
+            event.preventDefault();
+
+            let btn = this.formUpdateEl.querySelector("[type=submit]");
+            btn.disabled = true;
+
+            let values = this.getValues(this.formUpdateEl); 
+
+            let index = this.formUpdateEl.dataset.trIndex;
+
+            let tr = this.tableEl.rows[index];
+
+            let userOld = JSON.parse(tr.dataset.user);
+            console.log("Userooooooollllllddddddddd", userOld)
+            //Aqui, no assign, como as propriedades tem o mesmo nome, os valores serão substituidos. o values como tá na direita, vai ter prioridade nessa substiruição.
+            let result = Object.assign({}, userOld, values);
+            console.log("RESUUUUUUUUUUUULTTTTTTT", result);
+
+            this.getPhoto(this.formUpdateEl).then( (content) => {
+
+            //Essa condição diz: se o campo values.photo estiver vazio, deixe ele com o valor antigo
+            // | if(!values.photo) result._photo = userOld._photo;
+
+                if(!values.photo) {
+                    result._photo = userOld._photo;
+                } else{
+                    result._photo = content;
+                }
+
+                tr.dataset.user = JSON.stringify(result);
+
+                tr.innerHTML = `
+                <td><img src="${result._photo}" alt="User Image" class="img-circle img-sm"></td>
+                <td>${result._name}</td>
+                <td>${result._email}</td>
+                <td>${(result._admin) ? 'sim' : 'não'}</td>
+                <td>${Utils.dateFormat(result._register)}</td>
+                <td>
+                    <button type="button" class="btn btn-edit btn-primary btn-xs btn-flat">Editar</button>
+                    <button type="button" class="btn btn-danger btn-xs btn-flat">Excluir</button>
+                </td>
+            `;
+            
+
+                this.addEventsTr(tr);
+
+                this.updateCount();
+                
+                this.formUpdateEl.reset();
+
+                this.showPanelCreate();
+
+                //Habilitando botão pra adicionar novos dados
+                btn.disabled = false;
+
+            }, (e) => {
+                
+                //Se tudo deu errado, mostre um erro no console
+                console.error(e);
+
+        }
+
+        
+     );
 
         });
 
@@ -44,7 +116,7 @@ class UserController {
                 btn.disabled = true;
 
                 //Aqui estou recebendo os meu dados OU um false(Resultante de que o meu formulario é vazio)
-                let values = this.getValues();              
+                let values = this.getValues(this.formEl);              
 
                 /*
                     Resumo
@@ -55,7 +127,7 @@ class UserController {
 
                //Aqui estou retornando o resultado da promessa, chamando um metodo e passndo dois callbacks pra esse metodo, um que termina de resolver a promessa adicionando os valores ao addline...
                //E outro que mostra um erro se ocorreu um erro
-                this.getPhoto().then( (content) => {
+                this.getPhoto(this.formEl).then( (content) => {
 
                     //Adicionando o caminho da foto no campo photo
                     values.photo = content;
@@ -85,13 +157,13 @@ class UserController {
 }
 
 
-    getPhoto(){
+    getPhoto(formEl){
 
         //Este Metodo, vai retornar uma promessa(Uma classe promessa), com um callback como parametro...
         return new Promise( (resolve, reject) => {
 
                         //Filtrando o campo foto
-            let elements = [...this.formEl.elements].filter(item => {
+            let elements = [...formEl.elements].filter(item => {
                 //Retornando esse item pra quem chamar
                 if (item.name === 'photo') {
                     return item;
@@ -106,7 +178,6 @@ class UserController {
 
             //Aqui estou dizendo que quando terminar de carregar se deu tudo certo, vai fazer alguma coisa...
             fileReader.onload = () => {
-
                 //Essa coisa, é mandar o resultado resolvido dessa promessa pra quem chamou
                 resolve(fileReader.result);
 
@@ -114,9 +185,7 @@ class UserController {
 
             //Aqui estou dizendo que se der um erro, a promessa vai ser rejeitada, e retornará um pre quem chamar
             fileReader.onerror = (e) => {
-
                 reject(e);
-
             }
 
           //Aqui eu vou resolver com uma imagem padrão pra ser adicionada
@@ -138,7 +207,7 @@ class UserController {
 
     }
 
-    getValues(){
+    getValues(formEl){
 
         let user = {};
 
@@ -148,7 +217,7 @@ class UserController {
         //Reticencias = spred, ele espalha , coloca uma virgula em cada elemento desse array, por que lembra que tinhamos uma coleção de objetos? agora temos uma coleção de arrays
         //Para espalhar esses carinhas ultilizamos o spred
         //Resumindo: forEach não combina com objetos, pois é um metodo de array
-        [...this.formEl.elements].forEach(function(field, index){
+        [...formEl.elements].forEach((field, index) => {
 
             //Esse if é pra verificar se essas string name, email e password estão vazios
             //Se entrar aqui nesse if, quer dizer que está vazio e se está vasio quer dizer isvalid = false
@@ -199,6 +268,84 @@ class UserController {
       
     }
 
+    addEventsTr(tr){
+
+        //Pegue o item que foi clicado, pessa confirmação ao usuario, e se for true, remova a tr do lista 
+        tr.querySelector(".btn-delete").addEventListener("click", e=> {
+
+            if(confirm("Deseja realmente excluir?")){
+
+                tr.remove();
+                
+                this.updateCount();
+
+            }
+            
+
+        });
+
+        //Pegando a table row que foi adicionada na tabela, adcionando um evento de click...
+        //Essa ação, diz que quando a tr receber um click ele vai trocar o formulario de criação e colocar o formulario de edição de dados
+        tr.querySelector(".btn-edit").addEventListener("click", e=>{
+            //Aqui estou convertendo para um objeto javascript
+        let json = JSON.parse(tr.dataset.user);
+
+        //Armazenando o index da linha em um dataset do formulario
+        this.formUpdateEl.dataset.trIndex = tr.sectionRowIndex;
+
+        //Aqui temos um for in, que tá percorrendo o meu objeto json...
+        //O for significa para cada, e a variavel name significa o elemento em questão, por que não se esqueçã de que o for in...
+        //É um loop ele tá percorrendo a variavel json que tem um objeto com os dados do meu usuario
+        for(let name in json){
+        //O json é um objeto comum, assim está pegando apenas os atributos que forma passados.
+        //Aqui estou procurando os campos, e estou tirando o underline padrão no formulario "#form-user-update"
+        let field = this.formUpdateEl.querySelector("[name="+name.replace("_", "")+"]");
+
+        //Verifico se o campo existe no formulario
+        if(field) {
+                //Se o tipo do campo for:
+        switch(field.type){
+
+            //Se o input for do tipo radio, apenas continue, pois não é possivel file.type ser tratado com value
+            case 'file':
+            continue;
+            break;
+
+            //Caso seja radio
+            case 'radio':
+                //Aqui, ele tá pegando o valor que está sendo alimentado ou por M ou por f no caso o atributo value
+                field = this.formUpdateEl.querySelector("[name="+name.replace("_", "")+"][value="+json[name]+"]");
+                field.checked = true;
+            break;
+
+            //Se está checkado é true, se não está checkado, é false
+            case 'checkbox':
+                //Pegando a propriedade do meu do meu json, nunca se esqueça que os indices do json , são as propriedades do meu...
+                //Objeto, diferente do array, que os indices começam com[0, 1, 2...e assim por diante]
+                field.checked = json[name];
+            break;
+
+                //Se for de qualquer outro tipo o campo, excute o default+
+            default:
+                field.value = json[name];
+
+        }
+
+        field.value = json[name];
+        }
+        //O relplace serve pra tirar o underline do campo, pra fazer comparação com a instancia da classe, a intancia da classe está sendo chamada pelo o getter...
+
+        }
+
+        this.formUpdateEl.querySelector(".photo").src = json._photo;
+
+        this.showPanelUpdate();
+
+
+        });
+
+    }
+
     addLine (dataUser) {
 //Aqui estou criando a table roww que será inserida na minha table é l que no html é meu tbody
   let tr = document.createElement('tr');
@@ -220,67 +367,12 @@ class UserController {
       <td>${Utils.dateFormat(dataUser.register)}</td>
       <td>
           <button type="button" class="btn btn-edit btn-primary btn-xs btn-flat">Editar</button>
-          <button type="button" class="btn btn-danger btn-xs btn-flat">Excluir</button>
+          <button type="button" class="btn btn-danger btn-delete btn-xs btn-flat">Excluir</button>
       </td>
  `;
- //Pegando a table row que foi adicionada na tabela, adcionando um evento de click...
- //Essa ação, diz que quando a tr receber um click ele vai trocar o formulario de criação e colocar o formulario de edição de dados
- tr.querySelector(".btn-edit").addEventListener("click", e=>{
-              //Aqui estou convertendo para um objeto javascript
-   let json = JSON.parse(tr.dataset.user);
-   console.log(json);
-   let form =  document.querySelector("#form-user-update");
 
-   //Aqui temos um for in, que tá percorrendo o meu objeto json...
-  //O for significa para cada, e a variavel name significa o elemento em questão, por que não se esqueçã de que o for in...
-  //É um loop ele tá percorrendo a variavel json que tem um objeto com os dados do meu usuario
-   for(let name in json){
-    console.log("nome", name);
-       //O json é um objeto comum, assim está pegando apenas os atributos que forma passados.
-       //Aqui estou procurando os campos, e estou tirando o underline padrão no formulario "#form-user-update"
-       let field = form.querySelector("[name="+name.replace("_", "")+"]");
-       
-       //Verifico se o campo existe no formulario
-       if(field) {
-                    //Se o tipo do campo for:
-            switch(field.type){
-
-                //Se o input for do tipo radio, apenas continue, pois não é possivel file.type ser tratado com value
-                case 'file':
-                continue;
-                break;
-
-                //Caso seja radio
-                case 'radio':
-                    //Aqui, ele tá pegando o valor que está sendo alimentado ou por M ou por f no caso o atributo value
-                    field = form.querySelector("[name="+name.replace("_", "")+"][value="+json[name]+"]");
-                    field.checked = true;
-                break;
-
-                //Se está checkado é true, se não está checkado, é false
-                case 'checkbox':
-                    //Pegando a propriedade do meu do meu json, nunca se esqueça que os indices do json , são as propriedades do meu...
-                    //Objeto, diferente do array, que os indices começam com[0, 1, 2...e assim por diante]
-                    field.checked = json[name];
-                break;
-
-                    //Se for de qualquer outro tipo o campo, excute o default
-                default:
-                    field.value = json[name];
-
-            }
-
-            field.value = json[name];
-        }
-        //O relplace serve pra tirar o underline do campo, pra fazer comparação com a instancia da classe, a intancia da classe está sendo chamada pelo o getter...
-
-   }
-
-    this.showPanelUpdate();
-
-
- });
-
+ this.addEventsTr(tr);
+ 
  //Aqui estou acrescentando um usuario a minha tabela , se eu usasse o innerHTML, ele iria substituir as informações
 this.tableEl.appendChild(tr);
 
@@ -320,7 +412,7 @@ this.tableEl.appendChild(tr);
             numberUsers++;
 
             //Convertendo uma String pra JSON
-           let user =  JSON.parse(tr.dataset.user);
+           let user = JSON.parse(tr.dataset.user);
 
            //Aqui, eu estou acessando pra ver se existe um admin...
            //Por que eu não acessei user.admin como getter normal? por que quando eu converto o meu JSON-OBjeto pra string e depois converto essa string pra JSON novamente...
@@ -340,7 +432,6 @@ this.tableEl.appendChild(tr);
 
 
     }
-
     
 
 }//Fecha classe
